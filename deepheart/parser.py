@@ -135,16 +135,16 @@ class PCG:
                         self.n_samples += 1
                     except InvalidHeaderFileException as e:
                         print e
+        fft_embedding_size = 400
+        highpass_embedding_size = 200
+        embedding_size = 10611
 
         if doFFT:
-            fft_embedding_size = 400
-            highpass_embedding_size = 200
             X = np.zeros([self.n_samples, fft_embedding_size + highpass_embedding_size])
         else:
             # Truncating the length of each wav file to the
             # min file size (10611) (Note: this is bad
             # And causes loss of information!)
-            embedding_size = 10611
             X = np.zeros([self.n_samples, embedding_size])
 
         p = Pool(8)
