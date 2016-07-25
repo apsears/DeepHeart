@@ -8,7 +8,8 @@ from sklearn.preprocessing import normalize
 from sklearn.cross_validation import train_test_split
 from collections import namedtuple
 from sklearn.cross_validation import check_random_state
-
+from multiprocessing import Pool
+import multiprocessing
 
 class PCG:
     """
@@ -146,7 +147,10 @@ class PCG:
             embedding_size = 10611
             X = np.zeros([self.n_samples, embedding_size])
 
-        for idx, wavfname in enumerate(wav_file_names):
+        p = Pool(8)
+        print 'We have %d files' % (len(wav_file_names))
+        def f(wavfname):
+            # print('normalizing ', wavfname)
             rate, wf = wavfile.read(wavfname)
             wf = normalize(wf.reshape(1, -1))
 
@@ -170,10 +174,9 @@ class PCG:
                 features = np.concatenate((wf_fft, wf_low_pass_fft))
             else:
                 features = wf[:embedding_size]
-
-            X[idx, :] = features
-            idx += 1
-
+            return features
+        X = p.map(f, wav_file_names)
+        print 'shape', np.shape(wav_file_names)
         self.X = X
 
         class_labels = np.array(class_labels)
