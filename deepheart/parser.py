@@ -11,6 +11,35 @@ from sklearn.cross_validation import check_random_state
 from multiprocessing import Pool
 import multiprocessing
 
+def featurize(argList):
+    wavfname, opts = argList
+    doFFT, fft_embedding_size, highpass_embedding_size, embedding_size = opts
+    # print('normalizing ', wavfname)
+    rate, wf = wavfile.read(wavfname)
+    wf = normalize(wf.reshape(1, -1))
+
+    if doFFT:
+        # We only care about the magnitude of each frequency
+        wf_fft = np.abs(fft(wf))
+        wf_fft = wf_fft[:, :fft_embedding_size].reshape(-1)
+
+        # Filter out high frequencies via Butter transform
+        # The human heart maxes out around 150bpm = 2.5Hz
+        # Let's filter out any frequency significantly above this
+        nyquist = 0.5 * rate
+        cutoff_freq = 4.0  # Hz
+        w0, w1 = butter(5, cutoff_freq / nyquist, btype='low', analog=False)
+        wf_low_pass = lfilter(w0, w1, wf)
+
+        # FFT the filtered signal
+        wf_low_pass_fft = np.abs(fft(wf_low_pass))
+        wf_low_pass_fft = wf_low_pass_fft[:, :highpass_embedding_size].reshape(-1)
+
+        features = np.concatenate((wf_fft, wf_low_pass_fft))
+    else:
+        features = wf[:embedding_size]
+    return features
+
 class PCG:
     """
     PCG is a container for loading phonocardiogram (PCG) data for the [2016 physionet
@@ -152,7 +181,7 @@ class PCG:
 
         opts = doFFT, fft_embedding_size, highpass_embedding_size, embedding_size
         wavSet = [(w, opts) for w in wav_file_names]
-        X = p.map(self.featurize, wavSet)
+        X = p.map(featurize, wavSet)
         print 'shape', np.shape(wav_file_names)
         self.X = X
 
@@ -196,34 +225,7 @@ class PCG:
 
         return class_label
 
-    def featurize(argList):
-        wavfname, opts = argList
-        doFFT, fft_embedding_size, highpass_embedding_size, embedding_size = opts
-        # print('normalizing ', wavfname)
-        rate, wf = wavfile.read(wavfname)
-        wf = normalize(wf.reshape(1, -1))
 
-        if doFFT:
-            # We only care about the magnitude of each frequency
-            wf_fft = np.abs(fft(wf))
-            wf_fft = wf_fft[:, :fft_embedding_size].reshape(-1)
-
-            # Filter out high frequencies via Butter transform
-            # The human heart maxes out around 150bpm = 2.5Hz
-            # Let's filter out any frequency significantly above this
-            nyquist = 0.5 * rate
-            cutoff_freq = 4.0  # Hz
-            w0, w1 = butter(5, cutoff_freq / nyquist, btype='low', analog=False)
-            wf_low_pass = lfilter(w0, w1, wf)
-
-            # FFT the filtered signal
-            wf_low_pass_fft = np.abs(fft(wf_low_pass))
-            wf_low_pass_fft = wf_low_pass_fft[:, :highpass_embedding_size].reshape(-1)
-
-            features = np.concatenate((wf_fft, wf_low_pass_fft))
-        else:
-            features = wf[:embedding_size]
-        return features
 
     def __split_train_test(self):
         """
