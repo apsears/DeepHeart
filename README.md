@@ -21,7 +21,7 @@
  The FFT is a signal processing technique for converting a signal into
  a frequency domain. The original signal is also filtered with a high
  pass Butterworth filter aimed at removing noise above 4Hz (or 240 beats
- per minute). The filtered signal is again transformed to it's approximate
+ per minute). The filtered signal is again transformed to its approximate
  frequency domain. A combination of the above fourier coefficients are 
  fed into the convolutional neural network.
  
