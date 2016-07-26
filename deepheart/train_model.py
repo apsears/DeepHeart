@@ -12,8 +12,8 @@ def load_and_train_model(model_path, load_pretrained):
     else:
         pcg.initialize_wav_data()
 
-    cnn = CNN(pcg, epochs=100, dropout=0.5)
-    # cnn.train()
+    cnn = CNN(pcg, epochs=200, dropout=0.5)
+    cnn.train()
 
 if __name__ == '__main__':
     data_path = sys.argv[1]

@@ -38,7 +38,7 @@ class CNN:
         None
 
         """
-        print('begin train')
+        print('begin train', tf.__version__)
         print(self.__get_output_name())
 
         with tf.name_scope('input'):
@@ -46,6 +46,7 @@ class CNN:
             y = tf.placeholder(tf.float32, [None, self.nclasses], name='y')
             do_drop = tf.placeholder(tf.float32, name='drop')
 
+        print('inputted')
         with tf.name_scope('weights'):
             weights = {
                 'wc1': tf.Variable(tf.random_normal([5, 1, 1, 32]), name='wc1'),
@@ -56,6 +57,7 @@ class CNN:
                 'wd1': tf.Variable(tf.random_normal([int(self.d_input / 4) * 1 * 64, 1024]), name='wd1'),
                 'out': tf.Variable(tf.random_normal([1024, self.nclasses]), name='outW')
             }
+        print('biased')
         with tf.name_scope('biases'):
             biases = {
                 'bc1': tf.Variable(tf.random_normal([32]), name='bc1'),
@@ -64,27 +66,32 @@ class CNN:
                 'out': tf.Variable(tf.random_normal([self.nclasses]), name='outB')
             }
 
+        print('pred')
         with tf.name_scope('pred'):
             pred = self.model1D(X, weights, biases, do_drop)
 
+        print('costed')
         with tf.name_scope('cost'):
             cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y, name='cost'))
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(cost)
 
         dim = tf.shape(y)[0]
 
+        print('sensitivity')
         with tf.name_scope('sensitivity'):
             # sensitivity = correctly predicted abnormal / total number of actual abnormal
             abnormal_idxs = tf.cast(tf.equal(tf.argmax(pred, 1), 1), tf.float32)
-            pred1d = tf.reshape(tf.slice(y, [0, 1], [dim, 1]), [-1])
+            # r1 = tf.slice(y, [0, 1], [dim, 1])
+            pred1d = tf.reshape(tf.slice(y, [0, 1], tf.pack([dim, 1])), [-1])
             abn = tf.mul(pred1d, abnormal_idxs)
             sensitivity = tf.reduce_sum(abn) / tf.reduce_sum(pred1d)
             tf.scalar_summary('sensitivity', sensitivity)
 
+        print('specificity')
         with tf.name_scope('specificity'):
             # specificity = correctly predicted normal / total number of actual normal
             normal_idxs = tf.cast(tf.equal(tf.argmax(pred, 1), 0), tf.float32)
-            pred1d_n = tf.reshape(tf.slice(y, [0, 0], [dim, 1]), [-1])
+            pred1d_n = tf.reshape(tf.slice(y, [0, 0], tf.pack([dim, 1])), [-1])
             normal = tf.mul(pred1d_n, normal_idxs)
             specificity = tf.reduce_sum(normal) / tf.reduce_sum(pred1d_n)
             tf.scalar_summary('specificity', sensitivity)
@@ -96,6 +103,8 @@ class CNN:
         init = tf.initialize_all_variables()
 
         saver = tf.train.Saver()
+
+        print('saved')
         with tf.Session() as sess:
             sess.run(init)
 

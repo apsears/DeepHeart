@@ -12,11 +12,13 @@ from multiprocessing import Pool
 import multiprocessing
 
 def featurize(argList):
-    wavfname, opts = argList
+    # print "Featurizing #%d" % n
+    wavfname, n, opts = argList
+
     doFFT, fft_embedding_size, highpass_embedding_size, embedding_size = opts
     # print('normalizing ', wavfname)
     rate, wf = wavfile.read(wavfname)
-    wf = normalize(wf.reshape(1, -1))
+    wf = normalize(np.array(wf.reshape(1, -1),dtype='d'), )
 
     if doFFT:
         # We only care about the magnitude of each frequency
@@ -180,10 +182,10 @@ class PCG:
         print 'We have %d files' % (len(wav_file_names))
 
         opts = doFFT, fft_embedding_size, highpass_embedding_size, embedding_size
-        wavSet = [(w, opts) for w in wav_file_names]
+        wavSet = [(w, n, opts) for n,w in enumerate(wav_file_names)]
         X = p.map(featurize, wavSet)
         print 'shape', np.shape(wav_file_names)
-        self.X = X
+        self.X = np.array(X)
 
         class_labels = np.array(class_labels)
 
